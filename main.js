@@ -10,6 +10,7 @@ const PORT = process.env.PET_PORT || 7777;
 
 app.commandLine.appendSwitch('enable-transparent-visuals');
 app.commandLine.appendSwitch('disable-gpu-compositing');
+app.disableHardwareAcceleration(); // software rendering: no separate GPU process, less RAM
 
 // An already-running server.js on the same port is fine: just reuse it.
 process.on('uncaughtException', (e) => { if (e.code !== 'EADDRINUSE') throw e; });
@@ -23,6 +24,12 @@ setInterval(load.poll, 2000);
 setInterval(async () => { active = await linux.activeWindow(); }, 700);
 
 app.whenReady().then(() => {
+  // Work area of the monitor the pet is on (follows it across monitors and picks up resolution changes).
+  const petDisplay = () => {
+    if (typeof win === 'undefined' || win.isDestroyed()) return screen.getPrimaryDisplay();
+    const [x, y] = win.getPosition();
+    return screen.getDisplayNearestPoint({ x: Math.round(x + W / 2), y: Math.round(y + H - 40) });
+  };
   const wa0 = screen.getPrimaryDisplay().workArea;
   const win = new BrowserWindow({
     x: wa0.x + 100, y: wa0.y + wa0.height - H, width: W, height: H,
@@ -34,6 +41,19 @@ app.whenReady().then(() => {
   win.setVisibleOnAllWorkspaces(true);
   win.loadURL(`http://127.0.0.1:${PORT}/?bare`);
 
+  // Drag runs here: poll the cursor and move the window directly (no renderer round trip per move).
+  let dragT = null;
+  const stopDrag = () => { clearInterval(dragT); dragT = null; };
+  ipcMain.on('pet:drag', (_e, b) => {
+    stopDrag();
+    const c0 = screen.getCursorScreenPoint(), clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    dragT = setInterval(() => {
+      if (win.isDestroyed()) return stopDrag();
+      const c = screen.getCursorScreenPoint();
+      win.setPosition(Math.round(clamp(b.x0 + c.x - c0.x, b.minX, b.maxX)), Math.round(clamp(b.y0 + c.y - c0.y, b.minY, b.maxY)));
+    }, 8);
+  });
+  ipcMain.handle('pet:drag-end', () => { stopDrag(); return win.getPosition(); });
   ipcMain.on('pet:pos', (_e, x, y) => win.setPosition(Math.round(x), Math.round(y)));
 
   // Click-through while the pet is ghosted (you're typing over it); mouse moves are still tracked via getCursorScreenPoint.
@@ -84,7 +104,7 @@ app.whenReady().then(() => {
       deskSeq,
       sysBusy: load.busy(),
       battery,
-      wa: screen.getPrimaryDisplay().workArea,
+      wa: petDisplay().workArea,
     });
   }, 120);
 });

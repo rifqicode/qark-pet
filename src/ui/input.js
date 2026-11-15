@@ -7,18 +7,34 @@ pet.addEventListener('pointermove', (e) => {
   if (!S.drag) return;
   const dx = e.screenX - S.drag.sx, dy = e.screenY - S.drag.sy;
   if (!S.drag.moved && Math.hypot(dx, dy) < 4) return;
-  if (!S.drag.moved) { S.drag.moved = true; S.vy = 0; setState('held'); }
   const wa = S.env.wa;
+  if (!S.drag.moved) {
+    S.drag.moved = true; S.vy = 0; setState('held');
+    if (window.petHost) petHost.dragStart({ x0: S.wx, y0: S.wy, minX: minX(), maxX: maxX(), minY: wa.y, maxY: wa.y + wa.height - H });
+  }
   S.wx = S.tx = clamp(S.drag.wx0 + dx, minX(), maxX());
   S.wy = S.ty = clamp(S.drag.wy0 + dy, wa.y, wa.y + wa.height - H);
 });
-pet.addEventListener('pointerup', () => {
-  if (!S.drag) return;
-  const moved = S.drag.moved; S.justDragged = moved; S.drag = null;
+// The window is small and trails the cursor, so the cursor can leave it mid-drag and the release may never arrive
+// as pointerup. End the drag on any of the signals that can fire instead.
+let endingDrag = false;
+async function endDrag() {
+  if (!S.drag || endingDrag) return;
+  endingDrag = true;
+  const moved = S.drag.moved; S.justDragged = moved;
+  // main moved the window during the drag: adopt its final position before leaving drag mode
+  if (moved && window.petHost) { try { const p = await petHost.dragEnd(); S.wx = S.tx = p[0]; S.wy = S.ty = p[1]; } catch {} }
+  S.drag = null;
   S.lastActivity = Date.now();
   if (moved) { S.vy = 0; if (S.wy < floorY() - 2) setState('fall'); else { S.wy = S.ty = floorY(); setState('idle'); } }
+  endingDrag = false;
   setTimeout(() => { S.justDragged = false; }, 0);
-});
+}
+for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) pet.addEventListener(t, endDrag);
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('blur', endDrag);
+// Safety net: a drag that is still on while no button is held (pointermove reports buttons === 0) is over.
+window.addEventListener('pointermove', (e) => { if (S.drag && e.buttons === 0) endDrag(); });
 
 // Click = poke; wakes up. Also shows the pomodoro status.
 pet.addEventListener('click', () => S.justDragged || onEvent({ msg: (S.state === 'sleep' ? 'yaaawn… oh, hi! · ' : '') + pomoStatus(), mood: 'happy', ttl: 3000, manual: true }));
