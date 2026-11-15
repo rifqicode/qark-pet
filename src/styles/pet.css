@@ -1,0 +1,79 @@
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1e2230; font-family: system-ui, sans-serif; }
+  /* In Tauri the window is transparent: add ?bare to drop the demo background */
+  html:has(body.bare), body.bare { background: transparent; }
+  #pet { position: absolute; bottom: 24px; left: 175px; width: 90px; height: 80px; will-change: transform, left; }
+  #flip { width: 100%; height: 100%; transform-origin: 50% 100%; }
+  .body { position: absolute; bottom: 0; left: 8px; width: 74px; height: 58px; background: #ffb86b; border-radius: 50% 50% 44% 44%; box-shadow: inset -6px -6px 0 #e89a4a; }
+  .ear { position: absolute; top: 6px; width: 20px; height: 22px; background: #ffb86b; clip-path: polygon(50% 0, 0 100%, 100% 100%); }
+  .ear.l { left: 12px; transform: rotate(-12deg); } .ear.r { right: 12px; transform: rotate(12deg); }
+  .eye { position: absolute; top: 34px; width: 9px; height: 11px; background: #222; border-radius: 50%; transition: height .1s; }
+  .eye.l { left: 28px; } .eye.r { left: 52px; }
+  .blush { position: absolute; top: 46px; width: 10px; height: 6px; background: #ff8a8a; border-radius: 50%; opacity: .7; }
+  .blush.l { left: 20px; } .blush.r { left: 60px; }
+  .mouth { position: absolute; top: 46px; left: 41px; width: 8px; height: 5px; border-bottom: 2px solid #222; border-radius: 0 0 8px 8px; }
+  .tail { position: absolute; bottom: 8px; right: -2px; width: 22px; height: 10px; background: #e89a4a; border-radius: 10px; transform-origin: 0 50%; animation: wag 1.6s ease-in-out infinite; }
+  @keyframes wag { 50% { transform: rotate(-35deg); } }
+
+  /* states */
+  .idle #flip { animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe { 50% { transform: scale(1.03, .97); } }
+  .walk #flip { animation: hop .45s ease-in-out infinite; }
+  @keyframes hop { 50% { transform: translateY(-8px) rotate(3deg); } }
+  .happy #flip { animation: jump .5s ease-out infinite; }
+  @keyframes jump { 40% { transform: translateY(-34px) scale(.95, 1.08); } 70% { transform: translateY(0) scale(1.08, .92); } }
+  .happy .eye { height: 3px; margin-top: 4px; }
+  .sleep #flip { animation: breathe 4s ease-in-out infinite; }
+  .sleep .eye { height: 2px; margin-top: 5px; }
+  .sleep .tail { animation: none; }
+  /* system load is high (CPU/memory): the idle pet "thinks" (slow head tilt + animated dots) */
+  #think { position: absolute; top: -2px; right: -4px; font-size: 18px; font-weight: 700; color: #7d86a0; opacity: 0; letter-spacing: 1px; }
+  body.thinking .idle #think { opacity: 1; animation: dots 1.4s steps(4, end) infinite; }
+  @keyframes dots { 0% { clip-path: inset(0 100% 0 0); } 100% { clip-path: inset(0 0 0 0); } }
+  body.thinking .idle #flip { animation: ponder 2.6s ease-in-out infinite; }
+  @keyframes ponder { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-5deg) translateY(-1px); } }
+  body.thinking .idle .eye { height: 6px; margin-top: 3px; }
+  .alert #flip { animation: shake .25s linear infinite; }
+  @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+  .alert .eye { height: 15px; width: 11px; margin-top: -3px; }
+  .held #flip { transform-origin: 50% 0; animation: dangle .7s ease-in-out infinite; }
+  @keyframes dangle { 0%, 100% { transform: rotate(-7deg) scale(.95, 1.12); } 50% { transform: rotate(7deg) scale(.95, 1.12); } }
+  .held .eye, .fall .eye { height: 15px; width: 11px; margin-top: -3px; }
+  .held .mouth, .fall .mouth { height: 8px; border: 2px solid #222; border-radius: 50%; }
+  .fall #flip { animation: none; transform: scale(.9, 1.15); }
+  .land #flip { animation: squash .45s ease-out; }
+  @keyframes squash { 0% { transform: scale(1.3, .65); } 45% { transform: scale(.94, 1.1); } 100% { transform: scale(1, 1); } }
+  .scratch #flip { animation: scratch .25s ease-in-out infinite; }
+  @keyframes scratch { 50% { transform: rotate(-7deg) translateY(2px); } }
+  .scratch .eye, .yawn .eye, .stretch .eye, .chase .eye { height: 2px; margin-top: 5px; }
+  .yawn #flip { animation: yawn 2s ease-in-out; }
+  @keyframes yawn { 40%, 60% { transform: scale(1.06, 1.12); } }
+  .yawn .mouth { width: 12px; height: 12px; left: 39px; border: 2px solid #222; border-radius: 50%; }
+  .stretch #flip { animation: stretch 2s ease-in-out; transform-origin: 50% 100%; }
+  @keyframes stretch { 40%, 60% { transform: scale(1.3, .78); } }
+  .chase #flip { animation: spin .7s linear infinite; transform-origin: 50% 60%; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .petted #flip { animation: nuzzle .6s ease-in-out infinite; }
+  @keyframes nuzzle { 50% { transform: scale(1.05, .95) rotate(-3deg); } }
+  .petted .eye { height: 3px; margin-top: 4px; }
+  .petted .blush { opacity: 1; }
+  #heart { position: absolute; top: -4px; left: 50%; font-size: 18px; opacity: 0; pointer-events: none; }
+  .petted #heart { animation: heart 1s ease-out infinite; }
+  @keyframes heart { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-22px); } }
+  #pet { transition: opacity .4s; cursor: grab; }
+  #pet:active, .held #flip { cursor: grabbing; }
+  body.ghost #pet { opacity: .7; }
+  body.ghost.typing #pet { opacity: .3; }
+  body.weak #flip { filter: saturate(.45) brightness(.9); }
+  .blinking .eye { height: 2px !important; margin-top: 5px; }
+
+  #bubble { --bg: #fffdf8; --bd: #f0c987; position: absolute; bottom: 104px; left: calc(50% + var(--sx, 0px)); transform: translateX(-50%) translateY(8px) scale(.85); transform-origin: 50% 100%; opacity: 0; transition: opacity .2s, transform .25s cubic-bezier(.34, 1.56, .64, 1); white-space: normal; overflow-wrap: anywhere; width: max-content; max-width: 260px; text-align: center; line-height: 1.35; background: var(--bg); color: #2b2b36; padding: 8px 14px; border: 2px solid var(--bd); border-radius: 16px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px #0004; pointer-events: none; }
+  #bubble::before, #bubble::after { content: ''; position: absolute; left: calc(50% - var(--sx, 0px)); margin-left: -8px; border: 8px solid transparent; border-bottom: 0; }
+  #bubble::before { bottom: -10px; border-top-color: var(--bd); }
+  #bubble::after { bottom: -7px; border-top-color: var(--bg); }
+  #bubble.alert { --bg: #fff3ef; --bd: #ff8a6b; }
+  #btxt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  #bubble.open { pointer-events: auto; cursor: pointer; }
+  #bubble.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  #zzz { position: absolute; top: -6px; right: 0; font-size: 16px; color: #9ab; opacity: 0; }
+  .sleep #zzz { opacity: 1; animation: float 2s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-8px); } }
