@@ -1,0 +1,20 @@
+{
+  "name": "desktop-pet",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "server": "node server.js",
+    "dev": "nodemon --watch main.js --watch preload.js --watch server.js --watch notify-server.js --watch platform --watch integrations --watch src -e js,html,css --exec 'electron . --no-sandbox'",
+    "dev:notify": "PET_OWN_NOTIFY=1 npm run dev",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "^45.3.2",
+    "nodemon": "^3.1.14"
+  },
+  "dependencies": {
+    "dbus-next": "^0.10.2"
+  }
+}

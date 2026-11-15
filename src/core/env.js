@@ -1,0 +1,34 @@
+// --- cursor / active window feed from main ---
+let seenDesk = null;
+function onEnv(e) {
+  S.env = e;
+  if (seenDesk !== null && e.deskSeq !== seenDesk) S.lastMove = Date.now(); // desktop switched: not 'typing' for a few seconds
+  seenDesk = e.deskSeq;
+  S.thinking = !!e.sysBusy; document.body.classList.toggle('thinking', S.thinking);
+  if (!S.synced && e.pos) { S.wx = S.tx = e.pos[0]; S.wy = S.ty = floorY(); S.synced = true; }
+  const c = e.cursor;
+  if (lastCur && (c.x !== lastCur.x || c.y !== lastCur.y)) {
+    S.lastActivity = Date.now(); S.lastMove = Date.now();
+    if (S.state === 'sleep' && !S.lock && !S.dnd) setState('idle');
+  }
+  lastCur = c;
+  batteryCheck(e.battery);
+  look();
+}
+// Eyes follow the cursor; face it while standing still.
+function look() {
+  if (S.state === 'sleep') { eyes.forEach((e) => (e.style.transform = '')); return; }
+  // Mouse recently moved: look at it. Otherwise assume you're typing: look at the active window's center.
+  const a = S.env.active, typing = a && Date.now() - S.lastMove > 3000;
+  const gx = typing ? a.x + a.w / 2 : S.env.cursor.x, gy = typing ? a.y + a.h / 2 : S.env.cursor.y;
+  const dx = gx - (S.wx + PET_CX), dy = gy - (S.wy + PET_CY);
+  if (S.state === 'idle' && Math.abs(dx) > 30) S.dir = dx > 0 ? 1 : -1;
+  const ex = clamp(dx / 80, -3, 3) * S.dir, ey = clamp(dy / 80, -2, 2);
+  eyes.forEach((e) => (e.style.transform = `translate(${ex}px, ${ey}px)`));
+}
+
+function send() {
+  if (bubble.classList.contains('show')) placeBubble();
+  const k = Math.round(S.wx) + ',' + Math.round(S.wy);
+  if (k !== lastSent) { lastSent = k; if (window.petHost) petHost.setPos(Math.round(S.wx), Math.round(S.wy)); }
+}
