@@ -2,6 +2,8 @@
 let seenDesk = null;
 function onEnv(e) {
   S.env = e;
+  // Resolution / monitor changed: keep standing on the bottom of the (new) work area.
+  if (S.synced && !S.drag && !['fall', 'held'].includes(S.state) && Math.abs(S.wy - floorY()) > 2) S.wy = S.ty = floorY();
   if (seenDesk !== null && e.deskSeq !== seenDesk) S.lastMove = Date.now(); // desktop switched: not 'typing' for a few seconds
   seenDesk = e.deskSeq;
   S.thinking = !!e.sysBusy; document.body.classList.toggle('thinking', S.thinking);
@@ -28,6 +30,7 @@ function look() {
 }
 
 function send() {
+  if (S.drag && S.drag.moved) return; // main moves the window while dragging
   if (bubble.classList.contains('show')) placeBubble();
   const k = Math.round(S.wx) + ',' + Math.round(S.wy);
   if (k !== lastSent) { lastSent = k; if (window.petHost) petHost.setPos(Math.round(S.wx), Math.round(S.wy)); }
