@@ -1,7 +1,7 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: #1e2230; font-family: system-ui, sans-serif; }
   /* In Tauri the window is transparent: add ?bare to drop the demo background */
   html:has(body.bare), body.bare { background: transparent; }
-  #pet { position: absolute; bottom: 24px; left: 175px; width: 90px; height: 80px; will-change: transform, left; }
+  #pet { position: absolute; bottom: 24px; left: calc(50% - 45px); width: 90px; height: 80px; will-change: transform, left; }
   #flip { width: 100%; height: 100%; transform-origin: 50% 100%; }
   .body { position: absolute; bottom: 0; left: 8px; width: 74px; height: 58px; background: #ffb86b; border-radius: 50% 50% 44% 44%; box-shadow: inset -6px -6px 0 #e89a4a; }
   .ear { position: absolute; top: 6px; width: 20px; height: 22px; background: #ffb86b; clip-path: polygon(50% 0, 0 100%, 100% 100%); }
@@ -66,14 +66,19 @@
   body.weak #flip { filter: saturate(.45) brightness(.9); }
   .blinking .eye { height: 2px !important; margin-top: 5px; }
 
-  #bubble { --bg: #fffdf8; --bd: #f0c987; position: absolute; bottom: 104px; left: calc(50% + var(--sx, 0px)); transform: translateX(-50%) translateY(8px) scale(.85); transform-origin: 50% 100%; opacity: 0; transition: opacity .2s, transform .25s cubic-bezier(.34, 1.56, .64, 1); white-space: normal; overflow-wrap: anywhere; width: max-content; max-width: 260px; text-align: center; line-height: 1.35; background: var(--bg); color: #2b2b36; padding: 8px 14px; border: 2px solid var(--bd); border-radius: 16px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px #0004; pointer-events: none; }
-  #bubble::before, #bubble::after { content: ''; position: absolute; left: calc(50% - var(--sx, 0px)); margin-left: -8px; border: 8px solid transparent; border-bottom: 0; }
-  #bubble::before { bottom: -10px; border-top-color: var(--bd); }
-  #bubble::after { bottom: -7px; border-top-color: var(--bg); }
+  #bubble { --bg: #fffdf8; --bd: #f0c987; position: absolute; bottom: 22px; left: calc(100% + 14px); transform: translateX(-8px) scale(.85); transform-origin: 0 50%; opacity: 0; transition: opacity .2s, transform .25s cubic-bezier(.34, 1.56, .64, 1); white-space: normal; overflow-wrap: anywhere; width: max-content; box-sizing: border-box; max-width: 240px; text-align: center; line-height: 1.35; background: var(--bg); color: #2b2b36; padding: 8px 14px; border: 2px solid var(--bd); border-radius: 16px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px #0004; pointer-events: none; }
+  /* bubble sits beside the pet: right of it by default, left of it when the pet is on the right half of the screen */
+  #bubble.left { left: auto; right: calc(100% + 14px); transform: translateX(8px) scale(.85); transform-origin: 100% 50%; }
+  #bubble::before, #bubble::after { content: ''; position: absolute; top: 50%; margin-top: -8px; border: 8px solid transparent; border-left-width: 0; }
+  #bubble::before { left: -10px; border-right-color: var(--bd); }
+  #bubble::after { left: -7px; border-right-color: var(--bg); }
+  #bubble.left::before, #bubble.left::after { left: auto; border-left-width: 8px; border-right-width: 0; border-right-color: transparent; }
+  #bubble.left::before { right: -10px; border-left-color: var(--bd); }
+  #bubble.left::after { right: -7px; border-left-color: var(--bg); }
   #bubble.alert { --bg: #fff3ef; --bd: #ff8a6b; }
-  #btxt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  #btxt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
   #bubble.open { pointer-events: auto; cursor: pointer; }
-  #bubble.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  #bubble.show, #bubble.left.show { opacity: 1; transform: none; }
   #zzz { position: absolute; top: -6px; right: 0; font-size: 16px; color: #9ab; opacity: 0; }
   .sleep #zzz { opacity: 1; animation: float 2s ease-in-out infinite; }
   @keyframes float { 50% { transform: translateY(-8px); } }

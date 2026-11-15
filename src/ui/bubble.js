@@ -1,16 +1,12 @@
-// Keep the bubble on screen: when the window hangs off an edge, slide the bubble inward (tail keeps pointing at the pet).
+// The bubble sits beside the pet: to its right on the left half of the screen, to its left on the right half.
 function placeBubble() {
-  const bw = bubble.offsetWidth, wa = S.env.wa, m = 6;
-  const left = S.wx + W / 2 - bw / 2, right = left + bw;
-  let sx = 0;
-  if (left < wa.x + m) sx = wa.x + m - left;
-  else if (right > wa.x + wa.width - m) sx = wa.x + wa.width - m - right;
-  const lim = Math.max(0, Math.min(bw / 2 - 18, (W - bw) / 2 - 2)); // also stay inside the window
-  bubble.style.setProperty('--sx', clamp(sx, -lim, lim) + 'px');
+  const wa = S.env.wa;
+  bubble.classList.toggle('left', S.wx + W / 2 > wa.x + wa.width / 2);
 }
+const BUBBLE_MAX = 100; // characters shown in a bubble; the full text stays in History
 let bubbleNid = null, bubbleSid;
 function say(msg, ms = 4000, kind, nid, sid) {
-  btxt.textContent = msg; bubbleNid = nid ?? null; bubbleSid = sid;
+  btxt.textContent = msg.length > BUBBLE_MAX ? msg.slice(0, BUBBLE_MAX - 1).trimEnd() + '…' : msg; bubbleNid = nid ?? null; bubbleSid = sid;
   bubble.classList.toggle('alert', kind === 'alert'); bubble.classList.toggle('open', bubbleNid !== null); bubble.classList.add('show'); placeBubble();
   clearTimeout(bubbleT); bubbleT = setTimeout(() => bubble.classList.remove('show'), ms);
 }
