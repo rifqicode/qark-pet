@@ -23,7 +23,7 @@
     if (p.phase === 'work') {
       const long = p.round >= cfg.rounds, mins = long ? cfg.long : cfg.brk;
       p.phase = long ? 'long' : 'break'; p.end = now + mins * 60000;
-      return { msg: long ? `🍅 ${cfg.rounds} rounds done! long break ${mins}m, step away from the screen` : `🍅 done! ${mins}m break, stand up & stretch`, mood: 'alert', ttl: 6000 };
+      return { msg: long ? `${cfg.rounds} rounds done! long break ${mins}m, step away from the screen` : `Done! ${mins}m break, stand up & stretch`, mood: 'alert', ttl: 6000 };
     }
     p.round = p.phase === 'long' ? 1 : p.round + 1;
     p.phase = 'work'; p.end = now + cfg.work * 60000;
