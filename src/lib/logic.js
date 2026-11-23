@@ -30,6 +30,97 @@
     return { msg: `break over! focus round ${p.round}/${cfg.rounds} 💪`, mood: 'happy', ttl: 5000 };
   }
 
-  const api = { overlap, bestSpot, advancePomo };
+  // Detect general category of an active application class.
+  function detectAppCategory(cls) {
+    if (!cls) return 'other';
+    const c = String(cls).toLowerCase();
+    if (/(?:code|cursor|vscodium|sublime|atom|nvim|vim|emacs|terminal|kitty|alacritty|wezterm|tilix|xterm|konsole|urxvt)/.test(c)) return 'code';
+    if (/(?:chrome|chromium|firefox|brave|edge|opera|vivaldi)/.test(c)) return 'browser';
+    if (/(?:figma|inkscape|gimp|blender|krita)/.test(c)) return 'design';
+    if (/(?:slack|discord|telegram|whatsapp|teams)/.test(c)) return 'chat';
+    return 'other';
+  }
+
+  // Evaluate desktop clutter (too many open browser tabs or windows).
+  // Cooldown defaults to 20 minutes.
+  function evaluateClutter(stats, tracker, now, cooldownMs = 20 * 60000) {
+    if (!stats || !tracker) return null;
+    const tabs = Number(stats.tabs) || 0;
+    const windows = Number(stats.windows) || 0;
+    if (tracker.lastAlert && now - tracker.lastAlert < cooldownMs) return null;
+
+    if (tabs >= 20) {
+      tracker.lastAlert = now;
+      tracker.lastCount = tabs;
+      return { msg: `Whoa, ${tabs} browser tabs open! Super busy today, keep it up!`, mood: 'happy', ttl: 5500 };
+    }
+    if (windows >= 12) {
+      tracker.lastAlert = now;
+      tracker.lastCount = windows;
+      return { msg: `You have ${windows} windows open, heavy multitasking mode today!`, mood: 'happy', ttl: 5000 };
+    }
+    return null;
+  }
+
+  // Evaluate active application usage (e.g. continuous coding streak).
+  function evaluateAppMode(active, tracker, now, streakMs = 45 * 60000) {
+    if (!active || !tracker) return null;
+    const category = detectAppCategory(active.cls);
+    if (tracker.category !== category) {
+      tracker.category = category;
+      tracker.start = now;
+      return null;
+    }
+
+    const last = tracker.lastNudge || 0;
+    if (category === 'code' && now - tracker.start >= streakMs && (!last || now - last >= streakMs)) {
+      tracker.lastNudge = now;
+      return { msg: 'Coding streak for 45 minutes! Save a commit and give your eyes a short break', mood: 'happy', ttl: 5500 };
+    }
+    return null;
+  }
+
+  // Evaluate media player track changes and playback status.
+  function evaluateMedia(media, tracker, now, cooldownMs = 3 * 60000) {
+    if (!media || media.status !== 'Playing') {
+      return { isPlaying: false, event: null };
+    }
+    const title = (media.title || '').trim();
+    const artist = (media.artist || '').trim();
+    const trackKey = `${title}::${artist}`;
+
+    if (!tracker) return { isPlaying: true, event: null };
+    const isNew = trackKey && trackKey !== tracker.lastTrack;
+    const last = tracker.lastNudge || 0;
+
+    let event = null;
+    if (isNew && (!last || now - last >= cooldownMs)) {
+      tracker.lastTrack = trackKey;
+      tracker.lastNudge = now;
+      const cleanTitle = title.length > 35 ? `${title.slice(0, 32)}...` : title;
+      const text = artist ? `Now jamming: ${cleanTitle} (${artist})` : `Now jamming: ${cleanTitle}`;
+      event = { msg: text, mood: 'happy', ttl: 4000 };
+    }
+
+    return { isPlaying: true, event };
+  }
+
+  // Compute peek coordinates along the screen edge for fullscreen/maximized mode.
+  function getPeekSpot(wx, minXVal, maxXVal, floorYVal) {
+    const dLeft = Math.abs(wx - minXVal);
+    const dRight = Math.abs(wx - maxXVal);
+    if (dLeft <= dRight) {
+      return { x: minXVal, y: floorYVal, dir: 1, side: 'left' };
+    }
+    return { x: maxXVal, y: floorYVal, dir: -1, side: 'right' };
+  }
+
+  // Compute safe recovery coordinates when leaving fullscreen mode.
+  function getUnpeekSpot(wx, minXVal, maxXVal, floorYVal, margin = 80) {
+    const mid = (minXVal + maxXVal) / 2;
+    return { x: wx < mid ? minXVal + margin : maxXVal - margin, y: floorYVal };
+  }
+
+  const api = { overlap, bestSpot, advancePomo, detectAppCategory, evaluateClutter, evaluateAppMode, evaluateMedia, getPeekSpot, getUnpeekSpot };
   if (typeof module !== 'undefined') module.exports = api; else root.PetLogic = api;
 })(globalThis);
