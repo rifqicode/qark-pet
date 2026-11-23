@@ -7,7 +7,25 @@ function onEnv(e) {
   if (seenDesk !== null && e.deskSeq !== seenDesk) S.lastMove = Date.now(); // desktop switched: not 'typing' for a few seconds
   seenDesk = e.deskSeq;
   S.thinking = !!e.sysBusy; document.body.classList.toggle('thinking', S.thinking);
-  if (!S.synced && e.pos) { S.wx = S.tx = e.pos[0]; S.wy = S.ty = floorY(); S.synced = true; }
+  if (!S.synced && e.pos) {
+    S.synced = true;
+    const logic = window.PetLogic || (typeof PetLogic !== 'undefined' ? PetLogic : null);
+    if (e.active && e.active.fullscreen && logic && typeof minX === 'function') {
+      const spot = logic.getPeekSpot(e.pos[0], minX(), maxX(), floorY());
+      S.wx = S.tx = spot.x;
+      S.wy = S.ty = spot.y;
+      S.fullscreen = true;
+      S.peekDir = spot.dir;
+      document.body.classList.add('peeking');
+      document.body.classList.toggle('peek-left', spot.dir === 1);
+      document.body.classList.toggle('peek-right', spot.dir === -1);
+      setState('peek');
+      send();
+    } else {
+      S.wx = S.tx = e.pos[0];
+      S.wy = S.ty = floorY();
+    }
+  }
   const c = e.cursor;
   if (lastCur && (c.x !== lastCur.x || c.y !== lastCur.y)) {
     S.lastActivity = Date.now(); S.lastMove = Date.now();
@@ -15,6 +33,9 @@ function onEnv(e) {
   }
   lastCur = c;
   batteryCheck(e.battery);
+  if (typeof clutterCheck === 'function') clutterCheck(e.stats);
+  if (typeof appCheck === 'function') appCheck(e.active);
+  if (typeof mediaCheck === 'function') mediaCheck(e.media);
   look();
 }
 // Eyes follow the cursor; face it while standing still.

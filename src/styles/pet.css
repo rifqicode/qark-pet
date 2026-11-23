@@ -1,7 +1,7 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: #1e2230; font-family: system-ui, sans-serif; }
   /* In Tauri the window is transparent: add ?bare to drop the demo background */
   html:has(body.bare), body.bare { background: transparent; }
-  #pet { position: absolute; bottom: 24px; left: calc(50% - 45px); width: 90px; height: 80px; will-change: transform, left; }
+  #pet { position: absolute; bottom: 24px; left: calc(50% - 45px); width: 90px; height: 80px; will-change: transform, left; transition: opacity .4s, transform .35s ease-out; }
   #flip { width: 100%; height: 100%; transform-origin: 50% 100%; }
   .body { position: absolute; bottom: 0; left: 8px; width: 74px; height: 58px; background: #ffb86b; border-radius: 50% 50% 44% 44%; box-shadow: inset -6px -6px 0 #e89a4a; }
   .ear { position: absolute; top: 6px; width: 20px; height: 22px; background: #ffb86b; clip-path: polygon(50% 0, 0 100%, 100% 100%); }
@@ -64,6 +64,63 @@
   body.ghost #pet { opacity: .7; }
   body.ghost.typing #pet { opacity: .3; }
   body.weak #flip { filter: saturate(.45) brightness(.9); }
+  body.jamming .idle #flip { animation: groove 1.2s ease-in-out infinite; }
+  @keyframes groove { 0%, 100% { transform: rotate(0) translateY(0); } 25% { transform: rotate(-4deg) translateY(-2px); } 75% { transform: rotate(4deg) translateY(-2px); } }
+  body.peek-left #pet { transform: translateX(-52px); }
+  body.peek-right #pet { transform: translateX(52px); }
+  body.peek-left #flip, body.peek-right #flip { scale: 1 1 !important; }
+  body.peek-left .peek #flip {
+    transform-origin: 15% 95%;
+    animation: peekLeanLeft 4.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  }
+  @keyframes peekLeanLeft {
+    0%, 100% { transform: translateX(14px) translateY(-5px) rotate(13deg); }
+    50% { transform: translateX(14px) translateY(-6px) rotate(13deg) scale(1.01, 0.99); }
+  }
+  body.peek-right .peek #flip {
+    transform-origin: 50% 95%;
+    animation: peekLeanRight 4.6s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  }
+  @keyframes peekLeanRight {
+    0%, 100% { transform: scaleX(-1) translateX(14px) translateY(-5px) rotate(13deg); }
+    50% { transform: scaleX(-1) translateX(14px) translateY(-6px) rotate(13deg) scale(1.01, 0.99); }
+  }
+  body.peek-left .peek .ear.r, body.peek-right .peek .ear.r {
+    transform: rotate(22deg) scale(1.12);
+    animation: earTwitchLeft 4.6s ease-in-out infinite;
+  }
+  @keyframes earTwitchLeft {
+    0%, 18%, 55%, 100% { transform: rotate(22deg) scale(1.12); }
+    23% { transform: rotate(27deg) scale(1.16); }
+    28% { transform: rotate(21deg) scale(1.1); }
+  }
+  body.peek-left .peek .ear.l, body.peek-right .peek .ear.l {
+    transform: rotate(-4deg) scale(0.92);
+    opacity: .85;
+  }
+  /* Paw resting on the screen bezel while peeking */
+  .peek .body::after {
+    content: '';
+    position: absolute;
+    width: 13px;
+    height: 11px;
+    background: #ffb86b;
+    border-radius: 6px 6px 4px 4px;
+    box-shadow: inset -2px -2px 0 #e89a4a;
+  }
+  body.peek-left .peek .body::after, body.peek-right .peek .body::after {
+    bottom: 2px;
+    right: 18px;
+    transform: rotate(8deg);
+  }
+
+  .peek .eye { height: 12px !important; width: 10px; margin-top: -2px; }
+  .peek .tail { animation: none; opacity: 0; }
+  .peek .blush { opacity: .9; }
+  /* Transparent in fullscreen peeking mode, solid when hovered or showing bubble */
+  body.peeking.ghost #pet { opacity: .4; }
+  body.peeking.ghost.typing #pet { opacity: .25; }
+  body.peeking #pet:hover, body.peeking:not(.ghost) #pet { opacity: .95; }
   .blinking .eye { height: 2px !important; margin-top: 5px; }
 
   #bubble { --bg: #fffdf8; --bd: #f0c987; position: absolute; bottom: 22px; left: calc(100% + 14px); transform: translateX(-8px) scale(.85); transform-origin: 0 50%; opacity: 0; transition: opacity .2s, transform .25s cubic-bezier(.34, 1.56, .64, 1); white-space: normal; overflow-wrap: anywhere; width: max-content; box-sizing: border-box; max-width: 240px; text-align: center; line-height: 1.35; background: var(--bg); color: #2b2b36; padding: 8px 14px; border: 2px solid var(--bd); border-radius: 16px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px #0004; pointer-events: none; }

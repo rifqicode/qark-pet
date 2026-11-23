@@ -54,7 +54,7 @@ if (window.petHost) petHost.onMenu(({ id, i }) => {
   const recent = history.slice(-15).reverse();
   if (id === 'dnd') { S.dnd = !S.dnd; if (S.dnd) { queue.length = 0; } else if (S.state === 'sleep') setState('idle'); onEvent({ msg: S.dnd ? 'Do Not Disturb on 🤫' : 'Do Not Disturb off 🔔', mood: 'happy', ttl: 2500, manual: true }); }
   else if (id === 'skip') { pomo.end = Date.now(); pomoTick(); }
-  else if (id === 'reset') { Object.assign(pomo, { phase: 'work', round: 1, end: Date.now() + WORK_MIN * 60000 }); onEvent({ msg: `pomodoro reset 🍅 ${pomoStatus()}`, mood: 'happy', ttl: 3000, manual: true }); }
+  else if (id === 'reset') { Object.assign(pomo, { phase: 'work', round: 1, end: Date.now() + WORK_MIN * 60000 }); onEvent({ msg: `pomodoro reset · ${pomoStatus()}`, mood: 'happy', ttl: 3000, manual: true }); }
   else if (id === 'show' && recent[i] && recent[i].nid != null && recent[i].sid) fetch('/open', { method: 'POST', body: JSON.stringify({ id: recent[i].nid, sid: recent[i].sid }) }).catch(() => {});
   else if (id === 'show' && recent[i]) onEvent({ msg: recent[i].msg, mood: recent[i].mood, ttl: 6000, manual: true });
   else if (id === 'clear') history.length = 0;

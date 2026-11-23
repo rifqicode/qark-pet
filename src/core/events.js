@@ -32,16 +32,18 @@ let pumpT;
 function pump() {
   if (S.showing) return;
   clearTimeout(pumpT);
-  const i = queue.findIndex((q) => !q.soft || !typingNow() || Date.now() - q.t > 90000);
+  const i = queue.findIndex((q) => !q.soft || (!typingNow() && !S.fullscreen) || Date.now() - q.t > 90000);
   if (i < 0) { if (queue.length) pumpT = setTimeout(pump, 2000); return; }
   const ev = queue.splice(i, 1)[0];
   S.showing = true;
   const ms = queue.length > 3 ? 2500 : Math.min(Math.max(ev.ttl || 5000, 2500), 6000);
-  const reacts = !busy();
+  const isPeeking = S.fullscreen || S.state === 'peek';
+  const reacts = !busy() && !isPeeking;
   if (reacts) { S.lock = true; setState(ev.mood === 'alert' ? 'alert' : 'happy'); }
   say(queue.length ? `${ev.msg} (+${queue.length})` : ev.msg, ms, ev.mood, ev.nid, ev.sid);
   setTimeout(() => {
-    if (reacts && !busy()) { S.lock = false; setState('idle'); } else if (reacts) S.lock = false;
+    if (reacts && !busy()) { S.lock = false; setState(S.fullscreen ? 'peek' : 'idle'); }
+    else if (reacts) S.lock = false;
     S.showing = false;
     setTimeout(pump, 400);
   }, ms);

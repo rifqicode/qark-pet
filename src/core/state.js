@@ -12,6 +12,7 @@ const S = {
   state: 'idle', dir: 1, lock: false, thinking: false, showing: false, dnd: false, drinkN: 0,
   lastActivity: Date.now(), lastMove: 0, lastPoke: Date.now(),
   wx: 0, wy: 0, tx: 0, ty: 0, vy: 0, synced: false,
+  fullscreen: false, peekDir: 0,
   env: { cursor: { x: 0, y: 0 }, active: null, wa: { x: 0, y: 0, width: 1920, height: 1080 } },
   drag: null, justDragged: false,
 };

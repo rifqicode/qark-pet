@@ -12,11 +12,23 @@ setInterval(() => {
     if (S.state === 'idle' && (S.dnd || (!S.thinking && Date.now() - S.lastActivity > 90000))) setState('sleep');
     if (S.state === 'walk') {
       const dx = S.tx - S.wx, dy = S.ty - S.wy, d = Math.hypot(dx, dy);
-      if (d < 4) { S.wx = S.tx; S.wy = S.ty; setState('idle'); }
-      else { S.wx += (dx / d) * 4; S.wy += (dy / d) * 4; S.dir = dx >= 0 ? 1 : -1; }
+      const speed = S.fullscreen ? 14 : 4;
+      if (d < speed) {
+        S.wx = S.tx; S.wy = S.ty;
+        if (S.fullscreen) {
+          setState('peek');
+          if (S.peekDir) S.dir = S.peekDir;
+          document.body.classList.toggle('peek-left', S.peekDir === 1);
+          document.body.classList.toggle('peek-right', S.peekDir === -1);
+        } else {
+          setState('idle');
+          document.body.classList.remove('peek-left', 'peek-right');
+        }
+      }
+      else { S.wx += (dx / d) * speed; S.wy += (dy / d) * speed; S.dir = dx >= 0 ? 1 : -1; }
     }
   }
-  flip.style.scale = S.dir < 0 ? '-1 1' : '1 1';
+  flip.style.scale = (S.state === 'peek') ? '1 1' : (S.dir < 0 ? '-1 1' : '1 1');
   send();
 }, 33);
 
@@ -30,7 +42,7 @@ function doAct(name) {
   setTimeout(() => { if (S.state === name) setState('idle'); }, ms);
 }
 setInterval(() => {
-  if (!S.synced || S.lock || busy() || S.state !== 'idle' || typingNow()) return;
+  if (!S.synced || S.lock || busy() || S.state !== 'idle' || typingNow() || S.fullscreen) return;
   const m = mood(), r = Math.random();
   if (r < 0.35) return goTo(pickSpot());
   if (r < 0.75) {
@@ -42,7 +54,7 @@ setInterval(() => {
 
 // Active window moved/changed onto the pet: step aside (only if a clearly better spot exists).
 setInterval(() => {
-  if (!S.synced || S.lock || busy() || !S.env.active) return;
+  if (!S.synced || S.lock || busy() || !S.env.active || S.fullscreen) return;
   const ref = S.state === 'walk' ? score(S.tx, S.ty) : score(S.wx, S.wy);
   if (ref === 0) return;
   const b = pickSpot();
@@ -68,7 +80,7 @@ setInterval(() => {
   }
   const typing = typingNow();
   document.body.classList.toggle('typing', typing);
-  if (typing && !wasTyping && !S.lock && (S.state === 'idle' || S.state === 'walk')) {
+  if (typing && !wasTyping && !S.lock && !S.fullscreen && (S.state === 'idle' || S.state === 'walk')) {
     const fy = floorY();
     const corners = [[minX(), fy], [maxX(), fy]].sort((a, b) => score(...a) - score(...b));
     if (score(...corners[0]) < score(S.wx, S.wy) * 0.7) goTo({ x: corners[0][0], y: corners[0][1] });

@@ -17,11 +17,20 @@ process.on('uncaughtException', (e) => { if (e.code !== 'EADDRINUSE') throw e; }
 require('./server.js');
 if (process.env.PET_OWN_NOTIFY === '1') require('./notify-server.js');
 
-let battery = linux.battery(), active = null;
+let battery = linux.battery(), active = null, stats = { windows: 0, tabs: 0 };
 const load = linux.createLoadMonitor();
+const media = linux.createMediaMonitor();
+(async () => { try { active = await linux.activeWindow(); } catch {} })();
 setInterval(() => { battery = linux.battery(); }, 30000);
 setInterval(load.poll, 2000);
-setInterval(async () => { active = await linux.activeWindow(); }, 700);
+let nullCount = 0;
+setInterval(async () => {
+  const next = await linux.activeWindow();
+  if (next) { active = next; nullCount = 0; }
+  else { nullCount++; if (nullCount >= 2) active = null; }
+}, 250);
+setInterval(async () => { stats = await linux.windowStats(); }, 4000);
+setInterval(media.poll, 2500);
 
 app.whenReady().then(() => {
   // Work area of the monitor the pet is on (follows it across monitors and picks up resolution changes).
@@ -32,14 +41,27 @@ app.whenReady().then(() => {
   };
   const wa0 = screen.getPrimaryDisplay().workArea;
   const win = new BrowserWindow({
-    x: wa0.x + 100, y: wa0.y + wa0.height - H, width: W, height: H,
+    x: wa0.x + Math.round(wa0.width / 2 - W / 2), y: wa0.y + wa0.height - H, width: W, height: H,
     transparent: true, frame: false, hasShadow: false, resizable: false,
     skipTaskbar: true, focusable: false, alwaysOnTop: true, type: 'dock',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), backgroundThrottling: false },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true);
+  win.webContents.on('console-message', (_e, _level, message) => console.log('RENDERER:', message));
   win.loadURL(`http://127.0.0.1:${PORT}/?bare`);
+
+  // On startup: remap to make sure compositor paints transparent window on Pantheon
+  [150, 600].forEach((ms) => setTimeout(() => {
+    if (win.isDestroyed()) return;
+    win.hide();
+    setTimeout(() => {
+      if (!win.isDestroyed()) {
+        win.showInactive();
+        win.setAlwaysOnTop(true, 'screen-saver');
+      }
+    }, 60);
+  }, ms));
 
   // Drag runs here: poll the cursor and move the window directly (no renderer round trip per move).
   let dragT = null;
@@ -104,6 +126,8 @@ app.whenReady().then(() => {
       deskSeq,
       sysBusy: load.busy(),
       battery,
+      stats,
+      media: media.getMedia(),
       wa: petDisplay().workArea,
     });
   }, 120);
