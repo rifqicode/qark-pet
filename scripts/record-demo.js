@@ -72,6 +72,25 @@ app.whenReady().then(async () => {
   .str { color: #a6da95; }
   .cm { color: #6e738d; }
 
+  /* Feature label badge on top-right */
+  #feature-pill {
+    position: absolute;
+    top: 10px;
+    right: 18px;
+    background: rgba(30, 32, 48, 0.9);
+    border: 1px solid #494d64;
+    color: #eed49f;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    z-index: 150;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
   /* Screen right bezel indicator */
   .screen-bezel {
     position: absolute;
@@ -125,7 +144,7 @@ app.whenReady().then(async () => {
     height: 11px;
     background: #222;
     border-radius: 50%;
-    transition: transform 0.1s;
+    transition: transform 0.1s, height 0.1s;
   }
   .eye.l { left: 28px; }
   .eye.r { left: 52px; }
@@ -167,6 +186,48 @@ app.whenReady().then(async () => {
   @keyframes breathe { 50% { transform: scale(1.03, .97); } }
   .walk #flip { animation: hop .38s ease-in-out infinite; }
   @keyframes hop { 50% { transform: translateY(-9px); } }
+
+  /* Drag & Drop States */
+  .held #flip {
+    transform-origin: 50% 0;
+    animation: dangle .7s ease-in-out infinite;
+  }
+  @keyframes dangle {
+    0%, 100% { transform: rotate(-7deg) scale(.95, 1.12); }
+    50% { transform: rotate(7deg) scale(.95, 1.12); }
+  }
+  .held .eye, .fall .eye { height: 15px !important; width: 11px !important; margin-top: -3px; }
+  .held .mouth, .fall .mouth { height: 8px !important; border: 2px solid #222 !important; border-radius: 50% !important; }
+  
+  .fall #flip {
+    animation: none;
+    transform: scale(.9, 1.15);
+  }
+  .land #flip {
+    animation: squash .45s ease-out;
+  }
+  @keyframes squash {
+    0% { transform: scale(1.35, .62); }
+    45% { transform: scale(.94, 1.1); }
+    100% { transform: scale(1, 1); }
+  }
+
+  /* Petting State & Heart */
+  .petted #flip { animation: nuzzle .6s ease-in-out infinite; }
+  @keyframes nuzzle { 50% { transform: scale(1.06, .94) rotate(-3deg); } }
+  .petted .eye { height: 3px !important; margin-top: 4px; }
+  .petted .blush { opacity: 1 !important; transform: scale(1.2); }
+  #heart {
+    position: absolute;
+    top: -4px;
+    left: 42%;
+    font-size: 16px;
+    opacity: 0;
+    pointer-events: none;
+    color: #f38ba8;
+  }
+  .petted #heart { animation: floatHeart 1.1s ease-out infinite; }
+  @keyframes floatHeart {\n    0% { opacity: 1; transform: translateY(0) scale(0.8); }\n    100% { opacity: 0; transform: translateY(-24px) scale(1.2); }\n  }
 
   /* Peeking on right edge */
   .peeking-mode #pet-container {
@@ -247,9 +308,32 @@ app.whenReady().then(async () => {
     opacity: 1;
     transform: scale(1);
   }
+  #bubble.alert {
+    background: #fff3ef;
+    border-color: #ff8a6b;
+  }
+  #bubble.alert::before {
+    border-right-color: #ff8a6b;
+  }
+
+  /* Animated Simulated Cursor */
+  #mouse-cursor {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.05s ease;
+  }
+  #mouse-cursor svg {
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+  }
 </style>
 </head>
 <body>
+  <div id="feature-pill">qark-pet Companion</div>
+
   <div class="mock-window" id="mockWin">
     <div class="window-bar">
       <div class="dot red"></div>
@@ -259,15 +343,16 @@ app.whenReady().then(async () => {
     </div>
     <div class="code-lines">
       <span class="kw">const</span> pet = <span class="fn">createPet</span>({ name: <span class="str">'qark-pet'</span> });<br>
-      <span class="cm">// Watching active window &amp; media player...</span><br>
-      pet.<span class="fn">on</span>(<span class="str">'fullscreen'</span>, () =&gt; pet.<span class="fn">peekEdge</span>());<br>
-      pet.<span class="fn">startMonitoring</span>();
+      <span class="cm">// Watching active window, drag physics &amp; reminders...</span><br>
+      pet.<span class="fn">startHealthReminders</span>();<br>
+      pet.<span class="fn">enableEdgePeeking</span>();
     </div>
   </div>
 
   <div class="screen-bezel"></div>
 
   <div id="pet-container" class="idle">
+    <div id="heart">&#9829;</div>
     <div id="flip">
       <div class="tail"></div>
       <div class="body"></div>
@@ -279,7 +364,14 @@ app.whenReady().then(async () => {
       <div class="blush r"></div>
       <div class="mouth"></div>
     </div>
-    <div id="bubble">Whoa, 24 browser tabs open! Keep it up!</div>
+    <div id=\"bubble\">focus 1/4, 25m left</div>
+  </div>
+
+  <!-- Simulated SVG Cursor -->
+  <div id="mouse-cursor">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M4 3L11.5 21L14.5 13.5L22 10.5L4 3Z" fill="#ffffff" stroke="#1e2030" stroke-width="2" stroke-linejoin="round"/>
+    </svg>
   </div>
 
   <script>
@@ -287,41 +379,135 @@ app.whenReady().then(async () => {
     const flip = document.getElementById('flip');
     const bubble = document.getElementById('bubble');
     const mockWin = document.getElementById('mockWin');
+    const cursor = document.getElementById('mouse-cursor');
+    const pill = document.getElementById('feature-pill');
 
     window.updateScene = function(frame) {
-      // 0 - 12: Idle in center
-      if (frame < 12) {
-        pet.className = 'idle';
-        pet.style.left = '210px';
-        flip.style.scale = '1 1';
-        bubble.className = '';
+      // ----------------------------------------------------
+      // SCENE 1: DRAG & DROP PHYSICS (frames 0 - 32)
+      // ----------------------------------------------------
+      if (frame < 8) {
+        pill.textContent = 'Drag & Drop Physics';
+        pill.style.color = '#f5bde6';
         mockWin.className = 'mock-window';
-      }
-      // 12 - 28: Walk / hop to the left
-      else if (frame < 28) {
-        pet.className = 'walk';
-        const p = (frame - 12) / 16;
-        pet.style.left = (210 - p * 80) + 'px';
-        flip.style.scale = '-1 1';
-        bubble.className = '';
-      }
-      // 28 - 34: Pause & turn right
-      else if (frame < 34) {
         pet.className = 'idle';
-        pet.style.left = '130px';
+        pet.style.left = '215px';
+        pet.style.bottom = '16px';
         flip.style.scale = '1 1';
         bubble.className = '';
+        cursor.style.opacity = '1';
+        const p = frame / 8;
+        cursor.style.transform = 'translate(' + (180 + p * 75) + 'px, ' + (150 + p * 70) + 'px)';
+      } else if (frame < 22) {
+        // Dragging upward and right
+        pill.textContent = 'Drag & Drop Physics';
+        pill.style.color = '#f5bde6';
+        pet.className = 'held';
+        const p = (frame - 8) / 14;
+        const curX = 215 + Math.sin(p * Math.PI) * 20;
+        const curY = 16 + p * 80;
+        pet.style.left = curX + 'px';
+        pet.style.bottom = curY + 'px';
+        cursor.style.opacity = '1';
+        cursor.style.transform = 'translate(' + (curX + 40) + 'px, ' + (300 - curY - 75) + 'px)';
+      } else if (frame < 27) {
+        // Falling down under gravity
+        pill.textContent = 'Gravity Fall';
+        pill.style.color = '#f5bde6';
+        pet.className = 'fall';
+        const p = (frame - 22) / 5;
+        // Ease in quad for gravity acceleration
+        const fallBottom = 96 - (p * p) * 80;
+        pet.style.bottom = Math.max(16, fallBottom) + 'px';
+        cursor.style.opacity = '0.3';
+      } else if (frame < 33) {
+        // Landed with squash bounce
+        pill.textContent = 'Squash & Land Physics';
+        pill.style.color = '#a6da95';
+        pet.className = 'land';
+        pet.style.bottom = '16px';
+        cursor.style.opacity = '0';
       }
-      // 34 - 54: Walk / hop to the right
-      else if (frame < 54) {
+      // ----------------------------------------------------
+      // SCENE 2: PETTING INTERACTION (frames 33 - 54)
+      // ----------------------------------------------------
+      else if (frame < 55) {
+        pill.textContent = 'Petting Interaction';
+        pill.style.color = '#f38ba8';
+        pet.className = 'petted';
+        pet.style.left = '215px';
+        pet.style.bottom = '16px';
+        flip.style.scale = '1 1';
+        cursor.style.opacity = '1';
+        const strokeX = 245 + Math.sin((frame - 33) * 0.45) * 22;
+        const strokeY = 225 + Math.cos((frame - 33) * 0.45) * 4;
+        cursor.style.transform = 'translate(' + strokeX + 'px, ' + strokeY + 'px)';
+        bubble.className = '';
+      }
+      // ----------------------------------------------------
+      // SCENE 3: POMODORO TIMER STATUS (frames 55 - 75)
+      // ----------------------------------------------------
+      else if (frame < 75) {
+        pill.textContent = 'Pomodoro Timer';
+        pill.style.color = '#8aadf4';
+        cursor.style.opacity = '1';
+        cursor.style.transform = 'translate(255px, 225px) scale(0.9)';
+        pet.className = 'idle';
+        pet.style.left = '215px';
+        bubble.textContent = 'focus 1/4, 25m left';
+        bubble.className = 'show';
+      }
+      // ----------------------------------------------------
+      // SCENE 4: HYDRATION REMINDER (frames 75 - 94)
+      // ----------------------------------------------------
+      else if (frame < 94) {
+        pill.textContent = 'Hydration Reminder';
+        pill.style.color = '#8bd5ca';
+        cursor.style.opacity = '0';
+        pet.className = 'idle';
+        pet.style.left = '215px';
+        bubble.textContent = 'time for some water';
+        bubble.className = 'show alert';
+      }
+      // ----------------------------------------------------
+      // SCENE 5: 20-20-20 EYE STRAIN REST (frames 94 - 114)
+      // ----------------------------------------------------
+      else if (frame < 114) {
+        pill.textContent = '20-20-20 Eye Rest';
+        pill.style.color = '#a6da95';
+        cursor.style.opacity = '0';
+        pet.className = 'idle';
+        pet.style.left = '215px';
+        bubble.textContent = '20-20-20: look 20ft away for 20s';
+        bubble.className = 'show';
+      }
+      // ----------------------------------------------------
+      // SCENE 6: WORKSPACE ROAMING (frames 114 - 134)
+      // ----------------------------------------------------
+      else if (frame < 134) {
+        pill.textContent = 'Workspace Roaming';
+        pill.style.color = '#c6a0f6';
+        cursor.style.opacity = '0';
+        bubble.className = '';
         pet.className = 'walk';
-        const p = (frame - 34) / 20;
-        pet.style.left = (130 + p * 130) + 'px';
-        flip.style.scale = '1 1';
-        bubble.className = '';
+        if (frame < 124) {
+          // Hop left
+          const p = (frame - 114) / 10;
+          pet.style.left = (215 - p * 65) + 'px';
+          flip.style.scale = '-1 1';
+        } else {
+          // Hop right
+          const p = (frame - 124) / 10;
+          pet.style.left = (150 + p * 110) + 'px';
+          flip.style.scale = '1 1';
+        }
       }
-      // 54 - 70: Notification appears!
-      else if (frame < 70) {
+      // ----------------------------------------------------
+      // SCENE 7: CLUTTER AWARENESS (frames 134 - 152)
+      // ----------------------------------------------------
+      else if (frame < 152) {
+        pill.textContent = 'Clutter Awareness';
+        pill.style.color = '#f5a97f';
         pet.className = 'idle';
         pet.style.left = '260px';
         flip.style.scale = '1 1';
@@ -329,25 +515,37 @@ app.whenReady().then(async () => {
         bubble.className = 'show';
         mockWin.className = 'mock-window';
       }
-      // 70 - 88: Window goes fullscreen! Pet scurries to screen edge
-      else if (frame < 88) {
+      // ----------------------------------------------------
+      // SCENE 8: FULLSCREEN DETECTION & SCURRY (frames 152 - 170)
+      // ----------------------------------------------------
+      else if (frame < 170) {
+        pill.textContent = 'Fullscreen Detection';
+        pill.style.color = '#ed8796';
         mockWin.className = 'mock-window fullscreen';
         bubble.className = '';
         pet.className = 'walk';
-        const p = (frame - 70) / 18;
+        const p = (frame - 152) / 18;
         pet.style.left = (260 + p * 212) + 'px';
         flip.style.scale = '1 1';
       }
-      // 88 - 100: Tucks into Peeking Mode at bezel!
-      else if (frame < 100) {
+      // ----------------------------------------------------
+      // SCENE 9: EDGE PEEKING MODE (frames 170 - 186)
+      // ----------------------------------------------------
+      else if (frame < 186) {
+        pill.textContent = 'Edge Peeking Mode';
+        pill.style.color = '#eed49f';
         mockWin.className = 'mock-window fullscreen';
         pet.className = 'peeking-mode';
         pet.style.left = '472px';
         flip.style.scale = '1 1';
         bubble.className = '';
       }
-      // 100 - 120: Notification bubble appears while peeking
+      // ----------------------------------------------------
+      // SCENE 10: PEEKING NOTIFICATION - MPRIS MEDIA (frames 186 - 205)
+      // ----------------------------------------------------
       else {
+        pill.textContent = 'Peeking Notification';
+        pill.style.color = '#8aadf4';
         mockWin.className = 'mock-window fullscreen';
         pet.className = 'peeking-mode';
         pet.style.left = '472px';
@@ -362,13 +560,13 @@ app.whenReady().then(async () => {
   await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
   await new Promise(r => setTimeout(r, 600));
 
-  const totalFrames = 120;
+  const totalFrames = 205;
   fs.mkdirSync('/tmp/demo_frames', { recursive: true });
   console.log(`Recording ${totalFrames} frames...`);
 
   for (let i = 0; i < totalFrames; i++) {
     await win.webContents.executeJavaScript(`window.updateScene(${i});`);
-    await new Promise(r => setTimeout(r, 45));
+    await new Promise(r => setTimeout(r, 30));
     const img = await win.capturePage();
     fs.writeFileSync(`/tmp/demo_frames/frame_${String(i).padStart(3, '0')}.png`, img.toPNG());
   }
