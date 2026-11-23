@@ -1,9 +1,7 @@
 # qark-pet
 
 <p align="center">
-  <img src="assets/pet-idle.gif" alt="qark-pet Idle" width="140" />
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="assets/pet-peeking.gif" alt="qark-pet Peeking" width="240" />
+  <img src="assets/demo.gif" alt="qark-pet Demo" width="520" />
 </p>
 
 A lightweight, transparent Electron desktop pet (an orange cat) that lives on your screen. It keeps you healthy with water, eye-rest, and pomodoro breaks, acts as your desktop notification bubble, jams to your music, and automatically tucks itself into screen-edge **Peeking Mode** whenever you enter fullscreen so it never blocks your work.
